@@ -7,12 +7,19 @@ scrapes the data using the FungicideScraper at the end saves it to a CSV file.
 
 from fungicide_scrapers.scraper import FungicideScraper
 from utils.format_utils import excel_to_df, df_to_list
+from decouple import config
+import asyncio
 
-if __name__ == "__main__":
+
+async def main():
     scraper = FungicideScraper()
     urls = df_to_list(
         excel_to_df(
-            "../excel_files_to_scrape/посилання для скачування 1.xlsx")["Ссылки"]
+            f"../excel_files_to_scrape/{config('EXCEL_WITH_LINKS')}"
+        )[config("EXCEL_LINKS_COLUMN_NAME")]
     )
-    df = scraper.scrape(urls)
-    df.to_csv("fungicides_data.csv", index=False)
+    df = await scraper.scrape(urls)
+    df.to_csv("../results/fungicides_data.csv", index=False)
+
+if __name__ == "__main__":
+    asyncio.run(main())
