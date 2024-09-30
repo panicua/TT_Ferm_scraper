@@ -5,7 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from base_scraper.scraper_interface import BaseScraper
-from utils.config_file import HEADERS
+from utils.constants import HEADERS
 from utils.user_agents import USER_AGENTS
 
 
@@ -62,7 +62,8 @@ class FungicideScraper(BaseScraper):
 
         # Validate if the response is successful
         if not response or response.status_code != 200:
-            print(f"Skipping {url} due to invalid response or status code.")
+            print(f"Skipping {url} due to invalid response or status code."
+                  f"status code: {response.status_code}")
             return None
 
         # Parse response with BeautifulSoup
@@ -70,8 +71,7 @@ class FungicideScraper(BaseScraper):
 
         # Validate the presence of element that product mustgit  have
         if soup.find("div", class_="ds-product-main-price") is None:
-            print(f"Skipping {url} due to missing product price "
-                  f"(it's a product page)")
+            print(f"Skipping {url} due to missing product price element")
             return None
 
         # Proceed to parsing if valid
@@ -160,15 +160,3 @@ class FungicideScraper(BaseScraper):
                     return "Unknown"
                 return element.text.strip()
         return "Unknown"
-
-
-if __name__ == "__main__":
-    scraper = FungicideScraper()
-    urls = [
-        "https://agroplant.com.ua/uk/abakus",
-        "https://agroplant.com.ua/uk/gerbicid-avatar",
-        "https://agroplant.com.ua/uk/avido",
-        "https://agroplant.com.ua/uk/alfa-nufuron"
-    ]
-    df = scraper.scrape(urls)
-    df.to_csv("fungicides_data.csv", index=False)
