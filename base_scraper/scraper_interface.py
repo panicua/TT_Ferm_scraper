@@ -2,13 +2,11 @@ from abc import ABC, abstractmethod
 
 
 class BaseScraper(ABC):
-    def __init__(self):
-        self.urls = []
-
     @abstractmethod
-    def scrape(self, urls):
+    def send_request(self, url: str):
+        """Sends an HTTP GET request to the given URL."""
         pass
 
     @abstractmethod
-    def parse(self, response):
+    def scrape(self, urls: list[str]):
         pass
