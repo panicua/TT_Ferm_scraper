@@ -8,10 +8,26 @@ from bs4 import BeautifulSoup
 from base_scraper.scraper_interface import BaseScraper
 from utils.constants import HEADERS
 from utils.user_agents import USER_AGENTS
+from agroplant.fungicide_scrapers.constants import (
+    PRODUCT_PAGE_CHECK,
+    PRODUCT_PRICE_CLASS,
+    PRODUCT_AVAILABILITY_SELECTOR,
+    PRODUCT_NAME_CLASS,
+    PRODUCT_MANUFACTURER_SELECTOR,
+    PRODUCT_FORM_OUTER_CLASS_VARIANT_1,
+    PRODUCT_FORM_OUTER_CLASS_VARIANT_2,
+    PRODUCT_FORM_INNER_CLASS,
+)
 
 
 class FungicideScraper(BaseScraper):
-    async def send_request(self, session, url, retries=3, delay=5):
+    async def send_request(
+            self,
+            session,
+            url,
+            retries=3,
+            delay=5
+    ) -> str | None:
         headers = {**HEADERS, "User-Agent": random.choice(USER_AGENTS)}
         for attempt in range(retries):
             try:
@@ -40,7 +56,7 @@ class FungicideScraper(BaseScraper):
             try:
                 results = await asyncio.gather(
                     *tasks, return_exceptions=True
-                )  # Allow exceptions to propagate
+                )
             except asyncio.CancelledError:
                 print("Task was cancelled")
                 return pd.DataFrame()
@@ -79,7 +95,11 @@ class FungicideScraper(BaseScraper):
             ],
         )
 
-    async def validate_and_parse_url(self, session, url):
+    async def validate_and_parse_url(
+            self,
+            session: aiohttp.ClientSession,
+            url: str
+    ) -> dict | None:
         """
         Validates the URL and parses it if valid.
         Returns parsed data or None if the URL is invalid.
@@ -93,7 +113,7 @@ class FungicideScraper(BaseScraper):
         soup = BeautifulSoup(response, "lxml")
 
         # Validate the presence of element that product must have
-        if soup.find("div", class_="ds-product-main-price") is None:
+        if soup.find("div", class_=PRODUCT_PAGE_CHECK) is None:
             print(f"Skipping {url} due to missing product price element")
             return None
 
@@ -109,7 +129,7 @@ class FungicideScraper(BaseScraper):
         :return: Price string. E.g. "6 680 грн."
         """
         element = soup.find(
-            "div", class_="ds-price-new fsz-24 fw-700 dark-text"
+            "div", class_=PRODUCT_PRICE_CLASS
         )
         if element is None:
             return "Unknown"
@@ -123,8 +143,7 @@ class FungicideScraper(BaseScraper):
         :return: Availability string. E.g. "В наявності"
         """
         element = soup.select_one(
-            "div.ds-product-main-stock.d-flex.align-items-center."
-            "justify-content-center.fw-500.br-7"
+            PRODUCT_AVAILABILITY_SELECTOR
         )
         if element is None:
             return "Unknown"
@@ -137,7 +156,7 @@ class FungicideScraper(BaseScraper):
         :param soup: Parsed HTML of the product page.
         :return: Product name string.
         """
-        element = soup.find("div", class_="col-12 ds-page-title pb-3")
+        element = soup.find("div", class_=PRODUCT_NAME_CLASS)
         if element is None:
             return "Unknown"
         return element.text.strip()
@@ -150,8 +169,7 @@ class FungicideScraper(BaseScraper):
         :return: Manufacturer name string.
         """
         element = soup.select_one(
-            "div.ds-product-top-info.d-flex.flex-column."
-            "flex-md-row.align-iems-md-center a.blue-link"
+            PRODUCT_MANUFACTURER_SELECTOR
         )
         if element is None:
             return "Unknown"
@@ -164,14 +182,28 @@ class FungicideScraper(BaseScraper):
         :param soup: Parsed HTML of the product page.
         :return: Product form string. E.g. "5л"
         """
-        all_attributes = soup.find_all(
-            "div", class_="ds-product-main-attributes-item br-4 py-1 px-2"
+        all_attributes = (
+            soup.find_all("div", class_=PRODUCT_FORM_OUTER_CLASS_VARIANT_1)
+            or soup.find_all("div", class_=PRODUCT_FORM_OUTER_CLASS_VARIANT_2)
         )
 
         for attribute in all_attributes:
-            if "Тара:" in attribute.text:
-                element = attribute.find("span", class_="fsz-12 fw-500 ps-2")
-                if element is None:
-                    return "Unknown"
-                return element.text.strip()
+            if any(key in attribute.text for key in (
+                    "Тара", "Тарна одиниця", "Упаковка",
+            )):
+                element = attribute.find(
+                    "span", class_=PRODUCT_FORM_INNER_CLASS
+                )
+                if element:
+                    return element.text.strip()
+
+                second_variant_elements = attribute.select("ul li")
+                for second_variant_element in second_variant_elements:
+                    if any(key in second_variant_element.text for key in (
+                            "Тара", "Тарна одиниця", "Упаковка",
+                    )):
+                        return "".join(
+                            second_variant_element.text.strip().split()[1:]
+                        )
+                return "Unknown"
         return "Unknown"
