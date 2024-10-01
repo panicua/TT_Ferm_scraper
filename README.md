@@ -51,6 +51,10 @@ Data scraper.
    ```sh
    python -m agroplant.main
    ```
+   
+## DEMO:
+You can see detailed info in `results` folder.
+![scrape_data_result.png](demo_images%2Fscrape_data_result.png)
 
 ## Notes:
 - Feel free to change files/settings in the `agroplant/fungicide_scrapers/settings.py` module.
