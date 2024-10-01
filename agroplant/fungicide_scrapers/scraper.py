@@ -1,13 +1,10 @@
-import aiohttp
 import asyncio
 import random
 
+import aiohttp
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from base_scraper.scraper_interface import BaseScraper
-from utils.constants import HEADERS
-from utils.user_agents import USER_AGENTS
 from agroplant.fungicide_scrapers.constants import (
     PRODUCT_PAGE_CHECK,
     PRODUCT_PRICE_CLASS,
@@ -18,6 +15,9 @@ from agroplant.fungicide_scrapers.constants import (
     PRODUCT_FORM_OUTER_CLASS_VARIANT_2,
     PRODUCT_FORM_INNER_CLASS,
 )
+from base_scraper.scraper_interface import BaseScraper
+from utils.constants import HEADERS
+from utils.user_agents import USER_AGENTS
 
 
 class FungicideScraper(BaseScraper):
